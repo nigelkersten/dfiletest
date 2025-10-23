@@ -1,0 +1,37 @@
+# Upsun configuration, generated using AI at: 2025-10-23T13:41:41+01:00
+# AI can make mistakes. Please modify this file to suit your needs.
+applications:
+  directus:
+    type: nodejs:22  # Matches the NODE_VERSION ARG in Dockerfile, latest 22 version from Registry
+    build:
+      flavor: none  # Explicit build steps in hooks
+    hooks:
+      build: |
+        set -ex
+        npm install -g corepack@latest
+        apk --no-cache add python3 py3-setuptools build-base
+        corepack enable
+        corepack prepare
+        pnpm fetch
+        pnpm install --frozen-lockfile
+        npm run build
+      deploy: |
+        set -ex
+        # No explicit migrations or deploy steps detected
+    web:
+      commands:
+        start: node cli.js bootstrap && pm2-runtime start ecosystem.config.cjs
+      locations:
+        /:
+          passthru: true  # Pass requests to Node.js app
+    variables:
+      env:
+        DB_CLIENT: sqlite3
+        DB_FILENAME: /directus/database/database.sqlite
+        NODE_ENV: production
+        NPM_CONFIG_UPDATE_NOTIFIER: false
+
+routes:
+  https://{default}/:
+    type: upstream
+    upstream: directus:http
